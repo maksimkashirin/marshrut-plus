@@ -12,13 +12,13 @@ KHABAROVSK_SOURCE = {
 }
 
 
-KHABAROVSK_ROUTE = [
+KHABAROVSK_BASE_ROUTE = [
     {
         "step_code": "save_copy",
         "title": "Сохранить копию заключения ПМПК",
         "description": (
             "Сохраните копию заключения ПМПК до передачи "
-            "оригинала в образовательную организацию."
+            "документов в образовательную организацию."
         ),
     },
     {
@@ -33,16 +33,16 @@ KHABAROVSK_ROUTE = [
         "step_code": "submit_conclusion",
         "title": "Передать заключение образовательной организации",
         "description": (
-            "Передайте заключение ПМПК в школу или другую "
-            "образовательную организацию."
+            "Передайте заключение ПМПК в школу, детский сад "
+            "или другую образовательную организацию."
         ),
     },
     {
         "step_code": "submit_application",
         "title": "Подать заявление",
         "description": (
-            "Подайте заявление о создании рекомендованных "
-            "специальных образовательных условий."
+            "Подайте заявление о создании условий "
+            "в соответствии с рекомендациями ПМПК."
         ),
     },
     {
@@ -50,29 +50,62 @@ KHABAROVSK_ROUTE = [
         "title": "Получить подтверждение приёма документов",
         "description": (
             "Убедитесь, что заявление и заключение приняты "
-            "и зарегистрированы образовательной организацией."
+            "образовательной организацией."
         ),
     },
     {
         "step_code": "get_support_plan",
-        "title": "Получить информацию о плане сопровождения",
+        "title": "Узнать план реализации рекомендаций",
         "description": (
-            "Уточните, как образовательная организация планирует "
-            "реализовать рекомендации ПМПК."
-        ),
-    },
-    {
-        "step_code": "clarify_conditions",
-        "title": "Уточнить организацию рекомендованных условий",
-        "description": (
-            "Уточните программу, специалистов, занятия и другие "
-            "предусмотренные условия сопровождения."
+            "Уточните, как образовательная организация "
+            "планирует реализовать рекомендации ПМПК."
         ),
     },
 ]
 
 
-def get_or_create_khabarovsk_source(db: Session) -> Source:
+RECOMMENDATION_STEPS = {
+    "adapted_program": {
+        "step_code": "clarify_adapted_program",
+        "title": "Уточнить организацию обучения по адаптированной программе",
+        "description": (
+            "Уточните в образовательной организации, "
+            "как будет организовано обучение по рекомендованной программе."
+        ),
+    },
+
+    "speech_therapist": {
+        "step_code": "clarify_speech_therapist",
+        "title": "Уточнить организацию занятий с учителем-логопедом",
+        "description": (
+            "Уточните расписание и порядок организации занятий "
+            "с учителем-логопедом."
+        ),
+    },
+
+    "psychologist": {
+        "step_code": "clarify_psychologist",
+        "title": "Уточнить сопровождение педагога-психолога",
+        "description": (
+            "Уточните, как будет организовано сопровождение "
+            "педагога-психолога."
+        ),
+    },
+
+    "special_materials": {
+        "step_code": "clarify_special_materials",
+        "title": "Уточнить обеспечение специальными учебными материалами",
+        "description": (
+            "Уточните, какие специальные учебные или дидактические "
+            "материалы будут использоваться."
+        ),
+    },
+}
+
+
+def get_or_create_khabarovsk_source(
+    db: Session,
+) -> Source:
     source = db.scalar(
         select(Source).where(
             Source.url == KHABAROVSK_SOURCE["url"]
@@ -98,7 +131,9 @@ def create_route_for_case(
     db: Session,
     case_id: int,
     region: str,
+    recommendation_codes: list[str] | None = None,
 ) -> list[RouteStep]:
+
     if region != "Хабаровский край":
         raise ValueError(
             f"Route configuration for region '{region}' is not available"
@@ -106,10 +141,20 @@ def create_route_for_case(
 
     source = get_or_create_khabarovsk_source(db)
 
+    route_templates = list(KHABAROVSK_BASE_ROUTE)
+
+    selected_codes = set(
+        recommendation_codes or []
+    )
+
+    for code, template in RECOMMENDATION_STEPS.items():
+        if code in selected_codes:
+            route_templates.append(template)
+
     steps = []
 
     for index, template in enumerate(
-        KHABAROVSK_ROUTE,
+        route_templates,
         start=1,
     ):
         step = RouteStep(

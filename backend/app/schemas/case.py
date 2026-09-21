@@ -1,11 +1,12 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CaseCreate(BaseModel):
     user_id: int
     region: str
+    recommendation_codes: list[str] = Field(default_factory=list)
 
 
 class CaseResponse(BaseModel):

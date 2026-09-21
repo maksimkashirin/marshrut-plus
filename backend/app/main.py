@@ -5,6 +5,8 @@ from app.api.routes.users import router as users_router
 from app.database import check_database_connection
 from app.api.routes.route_steps import router as route_router
 
+from app.api.routes.recommendations import router as recommendations_router
+
 
 app = FastAPI(
     title="Маршрут+ API",
@@ -19,6 +21,7 @@ app = FastAPI(
 app.include_router(users_router)
 app.include_router(cases_router)
 app.include_router(route_router)
+app.include_router(recommendations_router)
 
 
 @app.get("/")

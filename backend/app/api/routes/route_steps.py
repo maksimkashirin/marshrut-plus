@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from app.services.dashboard import build_case_dashboard
 
 from app.database import get_db
 from app.models.case import Case
@@ -50,6 +51,10 @@ def get_case_route(
     "/cases/{case_id}/dashboard",
     response_model=RouteDashboardResponse,
 )
+@router.get(
+    "/cases/{case_id}/dashboard",
+    response_model=RouteDashboardResponse,
+)
 def get_case_dashboard(
     case_id: int,
     db: Session = Depends(get_db),
@@ -61,6 +66,11 @@ def get_case_dashboard(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Case not found",
         )
+
+    return build_case_dashboard(
+        db=db,
+        case=case,
+    )
 
     steps = list(
         db.scalars(
