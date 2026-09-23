@@ -29,6 +29,9 @@ services:
 
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN}
+      MAX_API_URL: ${MAX_API_URL}
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
     ports:
       - "8000:8000"
