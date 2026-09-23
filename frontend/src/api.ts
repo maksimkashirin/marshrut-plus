@@ -1,19 +1,95 @@
-import type { CaseOverview } from './types'
+import type {
+  CaseOverview,
+  Recommendation,
+} from './types'
+
 
 const API_URL =
   import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
-const CASE_ID =
-  import.meta.env.VITE_DEMO_CASE_ID ?? '3'
 
-
-export async function getCaseOverview(): Promise<CaseOverview> {
+export async function getRecommendations(): Promise<Recommendation[]> {
   const response = await fetch(
-    `${API_URL}/cases/${CASE_ID}/overview`,
+    `${API_URL}/recommendations`,
   )
 
   if (!response.ok) {
-    throw new Error('Не удалось загрузить маршрут')
+    throw new Error(
+      'Не удалось загрузить рекомендации',
+    )
+  }
+
+  return response.json()
+}
+
+
+export async function createUser(
+  maxUserId: string,
+): Promise<{ id: number }> {
+  const response = await fetch(
+    `${API_URL}/users`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        max_user_id: maxUserId,
+      }),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      'Не удалось создать пользователя',
+    )
+  }
+
+  return response.json()
+}
+
+
+export async function createCase(
+  userId: number,
+  recommendationCodes: string[],
+): Promise<{ id: number }> {
+  const response = await fetch(
+    `${API_URL}/cases`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        region: 'Хабаровский край',
+        recommendation_codes:
+          recommendationCodes,
+      }),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      'Не удалось создать маршрут',
+    )
+  }
+
+  return response.json()
+}
+
+
+export async function getCaseOverview(
+  caseId: number,
+): Promise<CaseOverview> {
+  const response = await fetch(
+    `${API_URL}/cases/${caseId}/overview`,
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      'Не удалось загрузить маршрут',
+    )
   }
 
   return response.json()
@@ -37,6 +113,8 @@ export async function completeStep(
   )
 
   if (!response.ok) {
-    throw new Error('Не удалось сохранить шаг')
+    throw new Error(
+      'Не удалось сохранить шаг',
+    )
   }
 }
