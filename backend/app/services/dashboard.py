@@ -33,8 +33,8 @@ def build_case_dashboard(
     if total_steps == 0:
         progress_percent = 0
     else:
-        progress_percent = round(
-            completed_steps / total_steps * 100
+        progress_percent = int(
+            completed_steps / total_steps * 100 + 0.5
         )
 
     source_ids = {

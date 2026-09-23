@@ -4,6 +4,7 @@ from app.api.routes.cases import router as cases_router
 from app.api.routes.users import router as users_router
 from app.database import check_database_connection
 from app.api.routes.route_steps import router as route_router
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.recommendations import router as recommendations_router
 
@@ -15,6 +16,17 @@ app = FastAPI(
         "после получения заключения ПМПК"
     ),
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
