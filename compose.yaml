@@ -32,6 +32,7 @@ services:
       MAX_BOT_TOKEN: ${MAX_BOT_TOKEN}
       MAX_API_URL: ${MAX_API_URL}
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      MINI_APP_URL: ${MINI_APP_URL}
 
     ports:
       - "8000:8000"
