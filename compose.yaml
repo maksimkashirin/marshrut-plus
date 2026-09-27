@@ -1,7 +1,8 @@
-services:
+﻿services:
   db:
     image: postgres:16-alpine
     container_name: marshrut_plus_db
+    restart: unless-stopped
 
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -19,30 +20,80 @@ services:
         ]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
 
   backend:
     build:
       context: ./backend
 
     container_name: marshrut_plus_backend
+    restart: unless-stopped
 
     environment:
       DATABASE_URL: ${DATABASE_URL}
       MAX_BOT_TOKEN: ${MAX_BOT_TOKEN}
       MAX_API_URL: ${MAX_API_URL}
-      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
       MINI_APP_URL: ${MINI_APP_URL}
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
 
-    ports:
-      - "8000:8000"
-
-    volumes:
-      - ./backend:/app
+    command: >
+      sh -c "
+      alembic upgrade head &&
+      python -m app.scripts.seed_recommendations &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
 
     depends_on:
       db:
         condition: service_healthy
 
+
+  bot:
+    build:
+      context: ./backend
+
+    container_name: marshrut_plus_bot
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN}
+      MAX_API_URL: ${MAX_API_URL}
+      MINI_APP_URL: ${MINI_APP_URL}
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+    command: python -m app.scripts.run_max_bot
+
+    depends_on:
+      backend:
+        condition: service_started
+
+
+  frontend:
+    build:
+      context: ./frontend
+
+    container_name: marshrut_plus_frontend
+    restart: unless-stopped
+
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+    depends_on:
+      backend:
+        condition: service_started
+
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:
