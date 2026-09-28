@@ -1,0 +1,254 @@
+﻿schemaVersion: "1.0"
+
+solution:
+  name: "Маршрут+"
+  teamId: "178"
+
+api:
+  baseUrl: "https://158-160-156-50.sslip.io/api"
+  openapi: "./openapi.json"
+
+  defaultHeaders:
+    Accept: "application/json"
+
+checks:
+  - id: "health-db"
+    name: "Database health"
+    description: "Checks that the API is available and PostgreSQL is connected."
+    method: "GET"
+    path: "/health/db"
+    role: "public"
+
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["status", "database"]
+      bodySchema:
+        type: object
+        required: [status, database]
+        properties:
+          status:
+            type: string
+          database:
+            type: string
+
+    timeoutMs: 5000
+    repeatable: true
+
+
+  - id: "list-recommendations"
+    name: "List PMPK recommendations"
+    description: "Returns recommendation types available for creation of a test route."
+    method: "GET"
+    path: "/recommendations"
+    role: "public"
+
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      bodySchema:
+        type: array
+        items:
+          type: object
+          required: [id, code, title, description]
+          properties:
+            id:
+              type: integer
+            code:
+              type: string
+            title:
+              type: string
+            description:
+              type: ["string", "null"]
+
+    timeoutMs: 5000
+    repeatable: true
+
+
+  - id: "create-user"
+    name: "Create test user"
+    description: "Creates or resolves a synthetic user for the technical verification scenario."
+    method: "POST"
+    path: "/users"
+    role: "public"
+
+    request:
+      headers:
+        Content-Type: "application/json"
+      body:
+        max_user_id: "api_judge_team_178"
+
+    expected:
+      statusCodes: [201]
+      contentType: "application/json"
+      requiredFields: ["id", "max_user_id", "created_at"]
+      bodySchema:
+        type: object
+        required: [id, max_user_id, created_at]
+        properties:
+          id:
+            type: integer
+          max_user_id:
+            type: ["string", "null"]
+          created_at:
+            type: string
+
+    timeoutMs: 5000
+    repeatable: true
+
+    extract:
+      userId: "$.id"
+
+
+  - id: "create-case"
+    name: "Create PMPK route case"
+    description: "Creates a synthetic post-PMPK case for Khabarovsk Krai."
+    method: "POST"
+    path: "/cases"
+    role: "public"
+    dependsOn: ["create-user"]
+
+    request:
+      headers:
+        Content-Type: "application/json"
+      body:
+        user_id: "${userId}"
+        region: "Хабаровский край"
+        recommendation_codes:
+          - "adapted_program"
+          - "speech_therapist"
+
+    expected:
+      statusCodes: [201]
+      contentType: "application/json"
+      requiredFields: ["id", "user_id", "region", "status", "created_at"]
+      bodySchema:
+        type: object
+        required: [id, user_id, region, status, created_at]
+        properties:
+          id:
+            type: integer
+          user_id:
+            type: integer
+          region:
+            type: string
+          status:
+            type: string
+          created_at:
+            type: string
+
+    timeoutMs: 5000
+    repeatable: false
+
+    extract:
+      caseId: "$.id"
+
+
+  - id: "case-overview"
+    name: "Read generated route overview"
+    description: "Checks the generated route, recommendations and dashboard."
+    method: "GET"
+    path: "/cases/{caseId}/overview"
+    role: "public"
+    dependsOn: ["create-case"]
+
+    request:
+      path:
+        caseId: "${caseId}"
+
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["case", "recommendations", "dashboard"]
+      bodySchema:
+        type: object
+        required: [case, recommendations, dashboard]
+        properties:
+          case:
+            type: object
+          recommendations:
+            type: array
+          dashboard:
+            type: object
+
+    timeoutMs: 5000
+    repeatable: true
+
+    extract:
+      stepId: "$.dashboard.next_step.id"
+
+
+  - id: "complete-step"
+    name: "Complete next route step"
+    description: "Marks the current next route step as completed."
+    method: "PATCH"
+    path: "/steps/{stepId}"
+    role: "public"
+    dependsOn: ["case-overview"]
+
+    request:
+      path:
+        stepId: "${stepId}"
+      headers:
+        Content-Type: "application/json"
+      body:
+        status: "completed"
+
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields:
+        - "id"
+        - "case_id"
+        - "step_code"
+        - "title"
+        - "order_number"
+        - "status"
+        - "completed_at"
+      bodySchema:
+        type: object
+        required:
+          - id
+          - case_id
+          - step_code
+          - title
+          - order_number
+          - status
+          - completed_at
+        properties:
+          id:
+            type: integer
+          case_id:
+            type: integer
+          step_code:
+            type: string
+          title:
+            type: string
+          order_number:
+            type: integer
+          status:
+            const: "completed"
+
+    timeoutMs: 5000
+    repeatable: true
+
+
+cleanup:
+  - id: "restore-step"
+    method: "PATCH"
+    path: "/steps/{stepId}"
+    role: "public"
+
+    request:
+      path:
+        stepId: "${stepId}"
+      headers:
+        Content-Type: "application/json"
+      body:
+        status: "pending"
+
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+
+    timeoutMs: 5000

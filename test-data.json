@@ -1,0 +1,21 @@
+﻿{
+  "description": "Synthetic technical-check data for Marshrut+ MVP. No real child, medical or PMPK personal data is used.",
+  "user": {
+    "max_user_id": "api_judge_team_178"
+  },
+  "case": {
+    "region": "Хабаровский край",
+    "recommendation_codes": [
+      "adapted_program",
+      "speech_therapist"
+    ]
+  },
+  "step_update": {
+    "status": "completed"
+  },
+  "notes": {
+    "user_id": "Use id returned by POST /users",
+    "case_id": "Use id returned by POST /cases",
+    "step_id": "Use dashboard.next_step.id returned by GET /cases/{case_id}/overview"
+  }
+}
